@@ -1,13 +1,9 @@
-import plotly.express as px
-from pyspark import SparkContext
-from pyspark.sql import SparkSession
-from pyspark.sql.functions import desc, first, udf, StringType, split, explode
-import panel as pn
-import seaborn as sns
-# Import SparkSession
+import ngram as ngram
+import nltk
+from pyspark.sql.functions import desc, first, udf, StringType, split, explode, collect_list, regexp_replace, col, \
+    array, expr
 from pyspark.sql import SparkSession
 import re
-import pandas as pd
 from nltk.corpus import stopwords
 from bs4 import BeautifulSoup
 from pyspark.sql.types import StructType, StructField, IntegerType
@@ -16,6 +12,8 @@ from dash import dcc, html
 import plotly.express as px
 import pandas as pd
 import seaborn as sns
+from pyspark.ml.feature import Tokenizer
+from pyspark.ml.feature import NGram
 
 
 spark = SparkSession.builder \
@@ -38,7 +36,7 @@ df.printSchema()
 
 df.cache()"""
 
-df.groupby("sentiment").count().show()
+#df.groupby("sentiment").count().show()
 
 def html_parser(text):
     soup = BeautifulSoup(text, "html.parser")
@@ -86,9 +84,7 @@ clean_df.persist()
 clean_df.show()
 
 #Word count
-
 #Common words in text
-
 #applying split funcion and explode to extract words from each column to see the Top words
 
 def wordCount(wordListDF):
@@ -96,10 +92,11 @@ def wordCount(wordListDF):
 
 wordCountUDF = udf(lambda x : wordCount(x), IntegerType())
 
+#def top_20_words_df():
 shakeWordsSplitDF = (clean_df
-                    .select(split(clean_df.review, '\s+').alias('split')))
+                        .select(split(clean_df.review, '\s+').alias('split')))
 shakeWordsSingleDF = (shakeWordsSplitDF
-                    .select(explode(shakeWordsSplitDF.split).alias('word')))
+                        .select(explode(shakeWordsSplitDF.split).alias('word')))
 shakeWordsDF = shakeWordsSingleDF.where(shakeWordsSingleDF.word != '')
 shakeWordsDF.persist()
 #shakeWordsDF.show()
@@ -110,11 +107,39 @@ WordsAndCountsDF
 
 top_20_words = WordsAndCountsDF.orderBy("count", ascending=0).limit(20)
 top_20_words.cache()
-top_20_words.show()
+#top_20_words.show()
+
+#Top 20 bigram: a pair of consecutive written units such as letters, syllables, or words.
+#using the pyspark.ml library "ngram" for feature extraction
+#First tokenize the clean_df. Sample output: [a, b, c,...]
+#                                            [d, e, f...]
+tokenizer = Tokenizer(inputCol="review", outputCol="word")
+vector_df = tokenizer.transform(clean_df).select("word")
+#vector_df.show()
+
+ngram = NGram(n=2, inputCol="word", outputCol="bigrams")
+#Df with 2 columns "Vector" and "word"
+bigramDataFrame = ngram.transform(vector_df)
+bigrams_df=bigramDataFrame.select(explode("bigrams").alias("bigram")).groupBy("bigram").count()
+top_20_bigrams = bigrams_df.orderBy("count", ascending=0).limit(20)
+top_20_bigrams.cache()
+#top_20_bigrams.show()
+
+#Top 20 trigram: a group of three consecutive written units such as letters, syllables, or words.
+#Same as top 20 bigram
+
+ngram = NGram(n=3, inputCol="word", outputCol="trigrams")
+trigramDataFrame = ngram.transform(vector_df)
+trigrams_df=trigramDataFrame.select(explode("trigrams").alias("trigram")).groupBy("trigram").count()
+top_20_trigrams = trigrams_df.orderBy("count", ascending=0).limit(20)
+top_20_trigrams.cache()
+#top_20_trigrams.show()
+
 
 pdf1 = df.toPandas()
 top_20_words_pandas = top_20_words.toPandas()
-
+top_20_bigrams_pandas=top_20_bigrams.toPandas()
+top_20_trigrams_pandas=top_20_trigrams.toPandas()
 
 app = dash.Dash()
 
@@ -134,6 +159,25 @@ fig_top_20_words = px.bar(
     color='word'
 )
 
+fig_top_20_bigrams = px.bar(
+    top_20_bigrams_pandas,
+    x="count",
+    y="bigram",
+    title='Top 20 bigrams in Text',
+    orientation='h',
+    width=700, height=700,
+    color='bigram'
+)
+
+fig_top_20_trigrams = px.bar(
+    top_20_trigrams_pandas,
+    x="count",
+    y="trigram",
+    title='Top 20 trigrams in Text',
+    orientation='h',
+    width=700, height=700,
+    color='trigram'
+)
 
 
 #fig_top_words = px.bar(topWordsPandas, x="count", y="word", title='Commmon Words in Text', orientation='h',             width=700, height=700)
@@ -141,8 +185,10 @@ fig_top_20_words = px.bar(
 
 app.layout=html.Div(children = [
     html.H1(children='IMDB Dashboard'),
-    dcc.Graph(id="provaprova", figure=fig),
-    dcc.Graph(id="provawords", figure=fig_top_20_words)
+    dcc.Graph(id="sentiment", figure=fig),
+    dcc.Graph(id="words", figure=fig_top_20_words),
+    dcc.Graph(id="bigrams", figure=fig_top_20_bigrams),
+    dcc.Graph(id="trigrams", figure=fig_top_20_trigrams)
 ])
 
 if __name__ == "__main__":
