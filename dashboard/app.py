@@ -4,11 +4,11 @@ import plotly.express as px
 import pandas as pd
 import seaborn as sns
 
-import operations.imdb_sentiment_analysis
+import jobs.imdb_sentiment_analysis
 
 app = dash.Dash()
 
-df = operations.prova.df.toPandas()
+df = jobs.prova.df.toPandas()
 
 fig = px.bar(
     df,
