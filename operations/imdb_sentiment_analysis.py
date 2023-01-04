@@ -34,57 +34,8 @@ df.createTempView("MovieReviews")
 #df.cache()
 df.show()
 
-#df.groupby("sentiment").count().show()
-
-#Define some functions for "review" column
-
-#Removing html tags from review
-def html_parser(text):
-    soup = BeautifulSoup(text, "html.parser")
-    return soup.get_text()
-
-html_parser_udf = udf(lambda x : html_parser(x), StringType())
-
-#removing text beetwen square brackets
-def remove_square_brackets(text):
-    return re.sub('\[[^]]*\]', '', text)
-
-remove_square_brackets_udf = udf(lambda x : remove_square_brackets(x), StringType())
-
-#removing url
-def remove_url(text):
-    return re.sub(r'http\S+', '', text)
-
-remove_url_udf = udf(lambda x : remove_url(x), StringType())
-
-
-stop = set(stopwords.words("english"))
-
-#removing stopwards
-def remove_stopwords(text):
-    final_text = []
-    for i in text.split():
-        if i.strip().lower() not in stop and i.strip().lower().isalpha():
-            final_text.append(i.strip().lower())
-    return " ".join(final_text)
-remove_stopwords_udf = udf(lambda x : remove_stopwords(x), StringType())
-
-#applying all the cleaning functions
-def clean_text(text):
-    text = html_parser(text)
-    text = remove_square_brackets(text)
-    text = remove_url(text)
-    text = remove_stopwords(text)
-    return text
-clean_text_udf = udf(lambda x : clean_text(x), StringType())
-
-#Clean_df is the dataset after cleaning review column
-clean_df = df.select(clean_text_udf("review").alias("review"), "sentiment")
-#clean_df.cache()
-#clean_df.persist()
+clean_df = spark.read.parquet("../tmp/clean_df")
 clean_df.show()
-
-
 #Word count
 
 #Common words in text
@@ -154,10 +105,6 @@ num_of_charsP = only_positive_df.withColumn("number_of_character", length("revie
 num_of_wordN = (only_negative_df.withColumn('wordCount',size(split(col("review"),' '))))
 num_of_charsN = only_negative_df.withColumn("number_of_character", length("review"))
 #num_of_wordN.sort(f.desc("wordCount")).show(20)
-
-
-
-
 
 
 #Convert the "spark df" to a pandas df
