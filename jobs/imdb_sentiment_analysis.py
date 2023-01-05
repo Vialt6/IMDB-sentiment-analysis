@@ -1,18 +1,16 @@
 from io import BytesIO
 from matplotlib import pyplot as plt
-from pyspark.sql.functions import desc, first, udf, StringType, split, explode, collect_list, regexp_replace, col, \
-    array, expr, size, length
+from pyspark.sql.functions import StringType
 from pyspark.sql import SparkSession
-from pyspark.sql.types import StructType, StructField, IntegerType
+from pyspark.sql.types import StructType, StructField
 import dash
 from dash import dcc, html
 import plotly.express as px
 import pandas as pd
-import seaborn as sns
-from pyspark.ml.feature import Tokenizer
-from pyspark.ml.feature import NGram
 from wordcloud import WordCloud
 import base64
+#from dash_bootstrap_components import BOOTSTRAP
+
 
 spark = SparkSession.builder \
       .master("local[2]") \
@@ -61,6 +59,10 @@ num_of_wordN = spark.read.parquet("../tmp/num_words_negative")
 num_of_charsN = spark.read.parquet("../tmp/num_chars_negative")
 #num_of_wordN.sort(f.desc("wordCount")).show(20)
 
+#sentiment score neg neu pos
+sentiment_score = spark.read.parquet("../tmp/sentiment_score")
+
+
 
 #Convert the "spark df" to a pandas df
 pdf1 = df.toPandas()
@@ -74,12 +76,20 @@ word_countPositive_pd = num_of_wordP.toPandas()
 word_countNegative_pd = num_of_wordN.toPandas()
 chars_countPositive_pd = num_of_charsP.toPandas()
 chars_countNegative_pd = num_of_charsN.toPandas()
+sentiment_score_pd = sentiment_score.toPandas()
+
+
+
+
+
+
 
 #Dash app
 app = dash.Dash()
+app.title = "IMDB sentiment analysis"
 
 #Figure section
-
+figures = []
 #First histogram
 fig = px.histogram(
     pdf1,
@@ -87,6 +97,7 @@ fig = px.histogram(
     width=700, height=700
     #size_max=60
 )
+figures.append(fig)
 
 #Barplot top 20 words
 fig_top_20_words = px.bar(
@@ -98,6 +109,7 @@ fig_top_20_words = px.bar(
     width=700, height=700,
     color='word'
 )
+figures.append(fig_top_20_words)
 
 #Barpolot top 20 bigrams
 fig_top_20_bigrams = px.bar(
@@ -109,6 +121,7 @@ fig_top_20_bigrams = px.bar(
     width=700, height=700,
     color='bigram'
 )
+figures.append(fig_top_20_bigrams)
 
 #Barplot top 20 trigrams
 fig_top_20_trigrams = px.bar(
@@ -120,6 +133,7 @@ fig_top_20_trigrams = px.bar(
     width=700, height=700,
     color='trigram'
 )
+figures.append(fig_top_20_trigrams)
 
 fig_count_positive = px.histogram(
     word_countPositive_pd,
@@ -127,6 +141,7 @@ fig_count_positive = px.histogram(
     x="wordCount",
     width=700, height=700
 )
+figures.append(fig_count_positive)
 
 
 fig_count_negative = px.histogram(
@@ -135,6 +150,7 @@ fig_count_negative = px.histogram(
     x="wordCount",
     width=700, height=700
 )
+figures.append(fig_count_negative)
 
 fig_chararcter_positive = px.histogram(
     chars_countPositive_pd,
@@ -142,6 +158,7 @@ fig_chararcter_positive = px.histogram(
     x="number_of_character",
     width=700, height=700
 )
+figures.append(fig_chararcter_positive)
 
 fig_chararcter_negative = px.histogram(
     chars_countNegative_pd,
@@ -149,6 +166,23 @@ fig_chararcter_negative = px.histogram(
     x="number_of_character",
     width=700, height=700
 )
+figures.append(fig_chararcter_negative)
+
+fig_sentiment_score_pos = px.histogram(
+    sentiment_score_pd,
+    title='Distribution of positive score',
+    x='pos',
+    width=700, height=700
+)
+figures.append(fig_sentiment_score_pos)
+
+fig_sentiment_score_neg = px.histogram(
+    sentiment_score_pd,
+    title='Distribution of negative score',
+    x='neg',
+    width=700, height=700
+)
+figures.append(fig_sentiment_score_neg)
 
 
 
@@ -173,22 +207,67 @@ def make_image_negative_wc(b):
     plot_wordcloud(df=only_negative_pandas,title="Negative Wordcloud",column="negative").save(img,format='PNG')
     return 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
 
+colors = {
+    'background': '#111111',
+    'text': '#7FDBFF'
+}
+
+for figure in figures:
+    figure.update_layout(
+    plot_bgcolor=colors['background'],
+    paper_bgcolor=colors['background'],
+    font_color=colors['text']
+    )
 
 
-#Dash Layout section
-app.layout=html.Div(children = [
-    html.H1(children='IMDB Dashboard'),
-    dcc.Graph(id="sentiment", figure=fig),
-    dcc.Graph(id="words", figure=fig_top_20_words),
-    dcc.Graph(id="bigrams", figure=fig_top_20_bigrams),
-    dcc.Graph(id="trigrams", figure=fig_top_20_trigrams),
-    html.Img(id="image_wc_positive"),
-    html.Img(id="image_wc_negative"),
-    dcc.Graph(id="word_count_positive", figure=fig_count_positive),
-    dcc.Graph(id="word_count_negative", figure=fig_count_negative),
-    dcc.Graph(id="charsCountPositive", figure=fig_chararcter_positive),
-    dcc.Graph(id="charsCountNegative", figure=fig_chararcter_negative)
+app.layout=html.Div(style={'backgroundColor': colors['background']}, children = [
+    html.Div(
+        children=[
+            html.P(children="🎥🍿🎦", className="header-emoji", style={'textAlign':'center'}),
+            html.H1(
+                children="IMDB sentiment analysis", className="header-title",
+                style={
+                    'textAlign': 'center',
+                    'color': colors['text']
+                }
+            ),
+            html.P(
+                children="This is a dashboard for the Big Data Project using Pyspark and Dash."
+                "The project involves analyzing reviews from the IMDB website and classifying them as either",
+                className="header-description",
+                style={
+                    'textAlign': 'center',
+                    'color': colors['text']
+                }
+            ),
+            html.P(
+                children="positive or negative based on the sentiment column in the dataset. The dataset consists of "
+                "two columns: \"review\" and \"sentiment\", where the review column contains the text of the "
+                "review and the sentiment column indicates whether the review is positive or negative.",
+                className="header-description",
+                style={
+                    'textAlign': 'center',
+                    'color': colors['text']
+                }
+            ),
+            dcc.Graph(id="sentiment", figure=fig),
+            dcc.Graph(id="words", figure=fig_top_20_words),
+            dcc.Graph(id="bigrams", figure=fig_top_20_bigrams),
+            dcc.Graph(id="trigrams", figure=fig_top_20_trigrams),
+            html.Img(id="image_wc_positive"),
+            html.Img(id="image_wc_negative"),
+            dcc.Graph(id="word_count_positive", figure=fig_count_positive),
+            dcc.Graph(id="word_count_negative", figure=fig_count_negative),
+            dcc.Graph(id="charsCountPositive", figure=fig_chararcter_positive),
+            dcc.Graph(id="charsCountNegative", figure=fig_chararcter_negative),
+            dcc.Graph(id="positive_score", figure=fig_sentiment_score_pos),
+            dcc.Graph(id="negative_score", figure=fig_sentiment_score_neg)
+        ],
+        className="header"
+
+    ),
 ])
+#Dash Layout section
 
 if __name__ == "__main__":
     app.run_server(debug=True)
