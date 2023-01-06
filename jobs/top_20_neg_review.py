@@ -12,4 +12,4 @@ sentiment_score_df = spark.read.parquet("../tmp/sentiment_score")
 top_20_neg_review = sentiment_score_df.orderBy("neg", ascending=0).limit(20)
 top_20_neg_review.show()
 
-top_20_neg_review.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/top_20_neg_review")
+#top_20_neg_review.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/top_20_neg_review")

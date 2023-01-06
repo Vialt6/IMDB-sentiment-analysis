@@ -106,7 +106,6 @@ fig = px.histogram(
     pdf1,
     x="sentiment",
     width=700, height=700
-    #size_max=60
 )
 
 
@@ -252,6 +251,44 @@ def n_grams_image(value):
         fig = fig_top_20_trigrams
         return fig
 
+@app.callback(Output('graph_word_count','figure'), [Input(component_id='dropdown_wc',component_property='value')])
+def word_count_image(value):
+    if value == 'wc_pos':
+        fig = fig_count_positive
+        return fig
+    if value == 'wc_neg':
+        fig = fig_count_negative
+        return fig
+
+@app.callback(Output('graph_char_count','figure'), [Input(component_id='dropdown_char_count',component_property='value')])
+def word_count_image(value):
+    if value == 'char_count_pos':
+        fig = fig_chararcter_positive
+        return fig
+    if value == 'char_count_neg':
+        fig = fig_chararcter_negative
+        return fig
+
+@app.callback(Output('graph_top_20_review_pos_neg','figure'), [Input(component_id='dropdown_top_20_review_pos_neg',component_property='value')])
+def top_20_pos_neg_review_image(value):
+    if value == 'top_20_pos_review':
+        fig = fig_top_20_pos_review
+        return fig
+    if value == 'top_20_neg_review':
+        fig = fig_top_20_neg_review
+        return fig
+@app.callback(Output('graph_sentiment_score','figure'), [Input(component_id='dropdown_sentiment_score',component_property='value')])
+def sentiment_score_fig(value):
+    if value == 'sentiment_pos':
+        fig = fig_sentiment_score_pos
+        return fig
+    if value == 'sentiment_neg':
+        fig = fig_sentiment_score_neg
+        return fig
+
+the_best_review = top_20_pos_review_pandas['review'].iloc[0]
+the_worst_review = top_20_neg_review_pandas['review'].iloc[0]
+
 # the style arguments for the sidebar. We use position:fixed and a fixed width
 SIDEBAR_STYLE = {
     "position": "fixed",
@@ -273,10 +310,10 @@ CONTENT_STYLE = {
 
 sidebar = html.Div(
     [
-        html.H2("Sidebar", className="display-4"),
+        html.H2("IMDB", className="display-4"),
         html.Hr(),
         html.P(
-            "A simple sidebar layout with navigation links", className="lead"
+            "Browse through the different sections to see what's there", className="lead"
         ),
         dbc.Nav(
             [
@@ -291,7 +328,7 @@ sidebar = html.Div(
     style=SIDEBAR_STYLE,
 )
 
-description = html.Div(
+home = html.Div(
         children=[
             html.P(children="🎥🍿🎦", className="header-emoji", style={'textAlign':'center'}),
             html.H1(
@@ -319,7 +356,157 @@ description = html.Div(
                     'textAlign': 'center'
                 }
             ),
-        ]
+            html.Div(children=[
+                html.Div([
+                    dcc.Graph(id="sentiment", figure=fig),
+                ], style={'display':'inline-block'}),
+                html.Div([
+                    html.Label(['Chose a graph:']),
+                    dcc.Dropdown(
+                    id='dropdown_ngrams',
+                    options=[
+                        {'label': 'top 20 words', 'value': 'top_20_words'},
+                        {'label': 'top 20 bigrams', 'value': 'top_20_bigrams'},
+                        {'label': 'top 20 trigrams', 'value': 'top_20_trigrams'},
+                    ],
+                    value='top_20_words',
+                ),
+                html.Div(dcc.Graph(id='graph_ngrams'))
+                ],style={'display':'inline-block'}),
+                html.P("This is the word cloud for positive reviews"),
+                html.Img(id="image_wc_positive"),
+                html.P("This is the word cloud for negative reviews"),
+                html.Img(id="image_wc_negative"),
+
+            ], style={'width': '30%', 'display': 'inline-block'}),
+            ],
+)
+
+page1 = html.Div(
+        children=[
+            html.P(children="🎥🍿🎦", className="header-emoji", style={'textAlign':'center'}),
+            html.H1(
+                children="IMDB sentiment analysis", className="header-title",
+                style={
+                    'textAlign': 'center'
+
+                }
+            ),
+            html.P(
+                children="This is a dashboard for the Big Data Project using Pyspark and Dash."
+                "The project involves analyzing reviews from the IMDB website and classifying them as either",
+                className="header-description",
+                style={
+                    'textAlign': 'center'
+
+                }
+            ),
+            html.P(
+                children="positive or negative based on the sentiment column in the dataset. The dataset consists of "
+                "two columns: \"review\" and \"sentiment\", where the review column contains the text of the "
+                "review and the sentiment column indicates whether the review is positive or negative.",
+                className="header-description",
+                style={
+                    'textAlign': 'center'
+                }
+            ),
+            html.Div(children=[
+                html.Div([
+                    html.Label(['Chose a graph:']),
+                    dcc.Dropdown(
+                    id='dropdown_wc',
+                    options=[
+                        {'label': 'word count positive review', 'value': 'wc_pos'},
+                        {'label': 'word count negative review', 'value': 'wc_neg'},
+                    ],
+                    value='wc_pos',
+                ),
+                dbc.Col(dcc.Graph(id='graph_word_count',style={'display': 'flexible'}), width=3),
+
+                ],style={'display':'flexible'}),
+
+            ], style={'width': '30%', 'display': 'flexible'}),
+            html.Div(children=[
+                html.Div([
+                    html.Label(['Chose a graph:']),
+                    dcc.Dropdown(
+                        id='dropdown_char_count',
+                        options=[
+                            {'label': 'number of character in positive review', 'value': 'char_count_pos'},
+                            {'label': 'number of character in negative review', 'value': 'char_count_neg'},
+                        ],
+                        value='char_count_pos',
+                    ),
+                    dbc.Col(dcc.Graph(id='graph_char_count',style={'display': 'flexible'}), width=3)
+                ], style={'display': 'flexible'}),
+
+            ], style={'width': '30%', 'display': 'flexible'})
+
+            ],
+
+)
+
+page2 = html.Div(
+        children=[
+            html.P(children="🎥🍿🎦", className="header-emoji", style={'textAlign':'center'}),
+            html.H1(
+                children="IMDB sentiment analysis", className="header-title",
+                style={
+                    'textAlign': 'center'
+
+                }
+            ),
+            html.P(
+                children="This is a dashboard for the Big Data Project using Pyspark and Dash."
+                "The project involves analyzing reviews from the IMDB website and classifying them as either",
+                className="header-description",
+                style={
+                    'textAlign': 'center'
+
+                }
+            ),
+            html.P(
+                children="positive or negative based on the sentiment column in the dataset. The dataset consists of "
+                "two columns: \"review\" and \"sentiment\", where the review column contains the text of the "
+                "review and the sentiment column indicates whether the review is positive or negative.",
+                className="header-description",
+                style={
+                    'textAlign': 'center'
+                }
+            ),
+            html.Div(children=[
+                html.Div([
+                    html.Label(['Chose a graph:']),
+                    dcc.Dropdown(
+                    id='dropdown_top_20_review_pos_neg',
+                    options=[
+                        {'label': 'top 20 positive reviews', 'value': 'top_20_pos_review'},
+                        {'label': 'top 20 negavtive reviews', 'value': 'top_20_neg_review'},
+                    ],
+                    value='top_20_pos_review',
+                ),
+                html.Div(dcc.Graph(id='graph_top_20_review_pos_neg')),
+                ],style={'display':'inline-block'}),
+                html.Div([
+                    html.P("This is the Best review based on the positivity score: "),
+                    html.P(the_best_review),
+                    html.P("This is the Worst review based on the negativity score: "),
+                    html.P(the_worst_review)
+                ]),
+                html.Div([
+                    html.Label(['Chose a graph:']),
+                    dcc.Dropdown(
+                        id='dropdown_sentiment_score',
+                        options=[
+                            {'label': 'positive score', 'value': 'sentiment_pos'},
+                            {'label': 'negative score', 'value': 'sentiment_neg'},
+                        ],
+                        value='sentiment_pos',
+                    ),
+                    html.Div(dcc.Graph(id='graph_sentiment_score'))
+                ], style={'display': 'inline-block'}),
+            ], style={'width': '30%', 'display': 'inline-block'}),
+            ],
 )
 
 
@@ -330,76 +517,20 @@ content = html.Div(id="page-content", style=CONTENT_STYLE)
 
 
 app.layout=html.Div(children = [
-    html.Div(
-        children=[
-            html.P(children="🎥🍿🎦", className="header-emoji", style={'textAlign':'center'}),
-            html.H1(
-                children="IMDB sentiment analysis", className="header-title",
-                style={
-                    'textAlign': 'center'
-
-                }
-            ),
-            html.P(
-                children="This is a dashboard for the Big Data Project using Pyspark and Dash."
-                "The project involves analyzing reviews from the IMDB website and classifying them as either",
-                className="header-description",
-                style={
-                    'textAlign': 'center'
-
-                }
-            ),
-            html.P(
-                children="positive or negative based on the sentiment column in the dataset. The dataset consists of "
-                "two columns: \"review\" and \"sentiment\", where the review column contains the text of the "
-                "review and the sentiment column indicates whether the review is positive or negative.",
-                className="header-description",
-                style={
-                    'textAlign': 'center'
-                }
-            ),
             html.Div([dcc.Location(id="url"), sidebar, content]),
-            dcc.Graph(id="sentiment", figure=fig),
-            html.Div([
-               html.Label(['Chose a graph:']),
-               dcc.Dropdown(
-                   id = 'dropdown_ngrams',
-                   options=[
-                        {'label': 'top 20 words', 'value':'top_20_words'},
-                        {'label': 'top 20 bigrams', 'value':'top_20_bigrams'},
-                        {'label': 'top 20 trigrams', 'value':'top_20_trigrams'},
-                   ],
-                    value='top_20_words',
-
-
-               ),
-                html.Div(dcc.Graph(id='graph_ngrams'))
-            ],style={'width': '30%', 'display': 'inline-block'}),
-            html.Img(id="image_wc_positive"),
-            html.Img(id="image_wc_negative"),
-            dcc.Graph(id="word_count_positive", figure=fig_count_positive),
-            dcc.Graph(id="word_count_negative", figure=fig_count_negative),
-            dcc.Graph(id="charsCountPositive", figure=fig_chararcter_positive),
-            dcc.Graph(id="charsCountNegative", figure=fig_chararcter_negative),
-            dcc.Graph(id="positive_score", figure=fig_sentiment_score_pos),
-            dcc.Graph(id="negative_score", figure=fig_sentiment_score_neg),
-            dcc.Graph(id="top_20_positive_review", figure=fig_top_20_pos_review),
-            dcc.Graph(id="top_20_negative_review", figure=fig_top_20_neg_review)
         ],
         className="header"
-
-    ),
-])
+    )
 #Dash Layout section
 
 @app.callback(Output("page-content", "children"), [Input("url", "pathname")])
 def render_page_content(pathname):
     if pathname == "/":
-        return html.P("This is the content of the home page!")
+        return home
     elif pathname == "/page-1":
-        return html.P("This is the content of page 1. Yay!")
+        return page1
     elif pathname == "/page-2":
-        return html.P("Oh cool, this is page 2!")
+        return page2
     # If the user tries to reach a different page, return a 404 message
     return html.Div(
         [
@@ -417,9 +548,18 @@ def render_page_content(pathname):
 
 
 if __name__ == "__main__":
-    app.run_server(debug=True)
+    app.run_server(debug=True,dev_tools_ui=False)
 
-"""dcc.Graph(id="words", figure=fig_top_20_words),
-dcc.Graph(id="bigrams", figure=fig_top_20_bigrams),
-dcc.Graph(id="trigrams", figure=fig_top_20_trigrams)"""
+
+
+"""html.Img(id="image_wc_positive"),
+html.Img(id="image_wc_negative"),
+dcc.Graph(id="word_count_positive", figure=fig_count_positive),
+dcc.Graph(id="word_count_negative", figure=fig_count_negative),
+dcc.Graph(id="charsCountPositive", figure=fig_chararcter_positive),
+dcc.Graph(id="charsCountNegative", figure=fig_chararcter_negative),
+dcc.Graph(id="positive_score", figure=fig_sentiment_score_pos),
+dcc.Graph(id="negative_score", figure=fig_sentiment_score_neg),
+dcc.Graph(id="top_20_positive_review", figure=fig_top_20_pos_review),
+dcc.Graph(id="top_20_negative_review", figure=fig_top_20_neg_review)"""
 
