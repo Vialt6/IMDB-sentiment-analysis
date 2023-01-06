@@ -4,11 +4,12 @@ from pyspark.sql.functions import StringType
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField
 import dash
-from dash import dcc, html
+from dash import dcc, html, Input, Output
 import plotly.express as px
 import pandas as pd
 from wordcloud import WordCloud
 import base64
+import dash_bootstrap_components as dbc
 #from dash_bootstrap_components import BOOTSTRAP
 
 
@@ -62,6 +63,14 @@ num_of_charsN = spark.read.parquet("../tmp/num_chars_negative")
 #sentiment score neg neu pos
 sentiment_score = spark.read.parquet("../tmp/sentiment_score")
 
+#top 20 positive review
+top_20_pos_review = spark.read.parquet("../tmp/top_20_pos_review")
+
+#top 20 negative review
+top_20_neg_review = spark.read.parquet("../tmp/top_20_neg_review")
+
+
+
 
 
 #Convert the "spark df" to a pandas df
@@ -77,19 +86,21 @@ word_countNegative_pd = num_of_wordN.toPandas()
 chars_countPositive_pd = num_of_charsP.toPandas()
 chars_countNegative_pd = num_of_charsN.toPandas()
 sentiment_score_pd = sentiment_score.toPandas()
+top_20_pos_review_pandas = top_20_pos_review.toPandas()
+top_20_neg_review_pandas = top_20_neg_review.toPandas()
 
 
-
-
+top_20_pos_review_pandas['id'] = top_20_pos_review_pandas['id'].astype(str)
+top_20_neg_review_pandas['id'] = top_20_neg_review_pandas['id'].astype(str)
 
 
 
 #Dash app
-app = dash.Dash()
+app = dash.Dash(__name__,external_stylesheets=[dbc.themes.BOOTSTRAP])
 app.title = "IMDB sentiment analysis"
 
 #Figure section
-figures = []
+
 #First histogram
 fig = px.histogram(
     pdf1,
@@ -97,7 +108,7 @@ fig = px.histogram(
     width=700, height=700
     #size_max=60
 )
-figures.append(fig)
+
 
 #Barplot top 20 words
 fig_top_20_words = px.bar(
@@ -109,7 +120,7 @@ fig_top_20_words = px.bar(
     width=700, height=700,
     color='word'
 )
-figures.append(fig_top_20_words)
+
 
 #Barpolot top 20 bigrams
 fig_top_20_bigrams = px.bar(
@@ -121,7 +132,7 @@ fig_top_20_bigrams = px.bar(
     width=700, height=700,
     color='bigram'
 )
-figures.append(fig_top_20_bigrams)
+
 
 #Barplot top 20 trigrams
 fig_top_20_trigrams = px.bar(
@@ -133,7 +144,7 @@ fig_top_20_trigrams = px.bar(
     width=700, height=700,
     color='trigram'
 )
-figures.append(fig_top_20_trigrams)
+
 
 fig_count_positive = px.histogram(
     word_countPositive_pd,
@@ -141,7 +152,7 @@ fig_count_positive = px.histogram(
     x="wordCount",
     width=700, height=700
 )
-figures.append(fig_count_positive)
+
 
 
 fig_count_negative = px.histogram(
@@ -150,15 +161,15 @@ fig_count_negative = px.histogram(
     x="wordCount",
     width=700, height=700
 )
-figures.append(fig_count_negative)
+
 
 fig_chararcter_positive = px.histogram(
     chars_countPositive_pd,
-    title='Number of characters in negative reviews',
+    title='Number of characters in positive reviews',
     x="number_of_character",
     width=700, height=700
 )
-figures.append(fig_chararcter_positive)
+
 
 fig_chararcter_negative = px.histogram(
     chars_countNegative_pd,
@@ -166,7 +177,7 @@ fig_chararcter_negative = px.histogram(
     x="number_of_character",
     width=700, height=700
 )
-figures.append(fig_chararcter_negative)
+
 
 fig_sentiment_score_pos = px.histogram(
     sentiment_score_pd,
@@ -174,7 +185,7 @@ fig_sentiment_score_pos = px.histogram(
     x='pos',
     width=700, height=700
 )
-figures.append(fig_sentiment_score_pos)
+
 
 fig_sentiment_score_neg = px.histogram(
     sentiment_score_pd,
@@ -182,8 +193,28 @@ fig_sentiment_score_neg = px.histogram(
     x='neg',
     width=700, height=700
 )
-figures.append(fig_sentiment_score_neg)
 
+#Barplot top 20 words
+fig_top_20_pos_review = px.bar(
+    top_20_pos_review_pandas,
+    x="pos",
+    y="id",
+    title='Top 20 positive review in Text',
+    orientation='h',
+    width=700, height=700,
+    color='id'
+)
+
+#Barplot top 20 negative review
+fig_top_20_neg_review = px.bar(
+    top_20_neg_review_pandas,
+    x="neg",
+    y="id",
+    title='Top 20 negative review in Text',
+    orientation='h',
+    width=700, height=700,
+    color='id'
+)
 
 
 
@@ -207,8 +238,8 @@ def make_image_negative_wc(b):
     plot_wordcloud(df=only_negative_pandas,title="Negative Wordcloud",column="negative").save(img,format='PNG')
     return 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
 
-@app.callback(dash.dependencies.Output('graph', 'figure'),
-              [dash.dependencies.Input(component_id='dropdown', component_property='value')]
+@app.callback(dash.dependencies.Output('graph_ngrams', 'figure'),
+              [dash.dependencies.Input(component_id='dropdown_ngrams', component_property='value')]
               )
 def n_grams_image(value):
     if value == 'top_20_words':
@@ -221,28 +252,53 @@ def n_grams_image(value):
         fig = fig_top_20_trigrams
         return fig
 
-colors = {
-    'background': '#111111',
-    'text': '#7FDBFF'
+# the style arguments for the sidebar. We use position:fixed and a fixed width
+SIDEBAR_STYLE = {
+    "position": "fixed",
+    "top": 0,
+    "left": 0,
+    "bottom": 0,
+    "width": "16rem",
+    "padding": "2rem 1rem",
+    "background-color": "#f8f9fa",
+}
+# the styles for the main content position it to the right of the sidebar and
+# add some padding.
+CONTENT_STYLE = {
+    "margin-left": "18rem",
+    "margin-right": "2rem",
+    "padding": "2rem 1rem",
 }
 
-for figure in figures:
-    figure.update_layout(
-    plot_bgcolor=colors['background'],
-    paper_bgcolor=colors['background'],
-    font_color=colors['text']
-    )
 
+sidebar = html.Div(
+    [
+        html.H2("Sidebar", className="display-4"),
+        html.Hr(),
+        html.P(
+            "A simple sidebar layout with navigation links", className="lead"
+        ),
+        dbc.Nav(
+            [
+                dbc.NavLink("Home", href="/", active="exact"),
+                dbc.NavLink("Page 1", href="/page-1", active="exact"),
+                dbc.NavLink("Page 2", href="/page-2", active="exact"),
+            ],
+            vertical=True,
+            pills=True,
+        ),
+    ],
+    style=SIDEBAR_STYLE,
+)
 
-app.layout=html.Div(style={'backgroundColor': colors['background']}, children = [
-    html.Div(
+description = html.Div(
         children=[
             html.P(children="🎥🍿🎦", className="header-emoji", style={'textAlign':'center'}),
             html.H1(
                 children="IMDB sentiment analysis", className="header-title",
                 style={
-                    'textAlign': 'center',
-                    'color': colors['text']
+                    'textAlign': 'center'
+
                 }
             ),
             html.P(
@@ -250,8 +306,8 @@ app.layout=html.Div(style={'backgroundColor': colors['background']}, children = 
                 "The project involves analyzing reviews from the IMDB website and classifying them as either",
                 className="header-description",
                 style={
-                    'textAlign': 'center',
-                    'color': colors['text']
+                    'textAlign': 'center'
+
                 }
             ),
             html.P(
@@ -260,15 +316,54 @@ app.layout=html.Div(style={'backgroundColor': colors['background']}, children = 
                 "review and the sentiment column indicates whether the review is positive or negative.",
                 className="header-description",
                 style={
-                    'textAlign': 'center',
-                    'color': colors['text']
+                    'textAlign': 'center'
                 }
             ),
+        ]
+)
+
+
+
+
+
+content = html.Div(id="page-content", style=CONTENT_STYLE)
+
+
+app.layout=html.Div(children = [
+    html.Div(
+        children=[
+            html.P(children="🎥🍿🎦", className="header-emoji", style={'textAlign':'center'}),
+            html.H1(
+                children="IMDB sentiment analysis", className="header-title",
+                style={
+                    'textAlign': 'center'
+
+                }
+            ),
+            html.P(
+                children="This is a dashboard for the Big Data Project using Pyspark and Dash."
+                "The project involves analyzing reviews from the IMDB website and classifying them as either",
+                className="header-description",
+                style={
+                    'textAlign': 'center'
+
+                }
+            ),
+            html.P(
+                children="positive or negative based on the sentiment column in the dataset. The dataset consists of "
+                "two columns: \"review\" and \"sentiment\", where the review column contains the text of the "
+                "review and the sentiment column indicates whether the review is positive or negative.",
+                className="header-description",
+                style={
+                    'textAlign': 'center'
+                }
+            ),
+            html.Div([dcc.Location(id="url"), sidebar, content]),
             dcc.Graph(id="sentiment", figure=fig),
             html.Div([
                html.Label(['Chose a graph:']),
                dcc.Dropdown(
-                   id = 'dropdown',
+                   id = 'dropdown_ngrams',
                    options=[
                         {'label': 'top 20 words', 'value':'top_20_words'},
                         {'label': 'top 20 bigrams', 'value':'top_20_bigrams'},
@@ -278,8 +373,8 @@ app.layout=html.Div(style={'backgroundColor': colors['background']}, children = 
 
 
                ),
-                html.Div(dcc.Graph(id='graph'))
-            ],style={'width': '30%', 'display': 'inline-block','color': colors['text']}),
+                html.Div(dcc.Graph(id='graph_ngrams'))
+            ],style={'width': '30%', 'display': 'inline-block'}),
             html.Img(id="image_wc_positive"),
             html.Img(id="image_wc_negative"),
             dcc.Graph(id="word_count_positive", figure=fig_count_positive),
@@ -287,13 +382,39 @@ app.layout=html.Div(style={'backgroundColor': colors['background']}, children = 
             dcc.Graph(id="charsCountPositive", figure=fig_chararcter_positive),
             dcc.Graph(id="charsCountNegative", figure=fig_chararcter_negative),
             dcc.Graph(id="positive_score", figure=fig_sentiment_score_pos),
-            dcc.Graph(id="negative_score", figure=fig_sentiment_score_neg)
+            dcc.Graph(id="negative_score", figure=fig_sentiment_score_neg),
+            dcc.Graph(id="top_20_positive_review", figure=fig_top_20_pos_review),
+            dcc.Graph(id="top_20_negative_review", figure=fig_top_20_neg_review)
         ],
         className="header"
 
     ),
 ])
 #Dash Layout section
+
+@app.callback(Output("page-content", "children"), [Input("url", "pathname")])
+def render_page_content(pathname):
+    if pathname == "/":
+        return html.P("This is the content of the home page!")
+    elif pathname == "/page-1":
+        return html.P("This is the content of page 1. Yay!")
+    elif pathname == "/page-2":
+        return html.P("Oh cool, this is page 2!")
+    # If the user tries to reach a different page, return a 404 message
+    return html.Div(
+        [
+            html.H1("404: Not found", className="text-danger"),
+            html.Hr(),
+            html.P(f"The pathname {pathname} was not recognised..."),
+        ],
+        className="p-3 bg-light rounded-3",
+    )
+
+
+
+
+
+
 
 if __name__ == "__main__":
     app.run_server(debug=True)

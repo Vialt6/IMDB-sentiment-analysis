@@ -24,7 +24,7 @@ remove_url_udf = udf(lambda x : remove_url(x), StringType())
 
 stop = set(stopwords.words("english"))
 
-#removing stopwards
+#removing stopwards and set text to lowercase
 def remove_stopwords(text):
     final_text = []
     for i in text.split():
@@ -32,6 +32,17 @@ def remove_stopwords(text):
             final_text.append(i.strip().lower())
     return " ".join(final_text)
 remove_stopwords_udf = udf(lambda x : remove_stopwords(x), StringType())
+
+
+#only remove stopwards
+def remove_stopwords_up(text):
+    final_text = []
+    for i in text.split():
+        if i.strip().lower() not in stop and i.strip().lower().isalpha():
+            final_text.append(i.strip())
+    return " ".join(final_text)
+
+
 
 #applying all the cleaning functions
 def clean_text(text):
@@ -41,6 +52,17 @@ def clean_text(text):
     text = remove_stopwords(text)
     return text
 clean_text_udf = udf(lambda x : clean_text(x), StringType())
+
+
+#applying all the cleaning functions with words up
+def clean_text_up(text):
+    text = html_parser(text)
+    text = remove_square_brackets(text)
+    text = remove_url(text)
+    text = remove_stopwords_up(text)
+    return text
+clean_text_udf = udf(lambda x : clean_text(x), StringType())
+
 
 
 def wordCount(wordListDF):

@@ -1,9 +1,9 @@
 import nltk
 import pandas as pd
 from pyspark.sql import SparkSession
-from pyspark.sql.functions import desc, first, udf, StringType, split, explode, collect_list, regexp_replace, col, \
-    array, expr, size, length
 from nltk.sentiment.vader import SentimentIntensityAnalyzer
+from pyspark.sql.functions import row_number, lit
+from pyspark.sql.window import Window
 
 spark = SparkSession.builder \
       .master("local[2]") \
@@ -20,5 +20,8 @@ clean_df["sentiment"] = clean_df["review"].apply(lambda x: sid.polarity_scores(x
 reviews_df = pd.concat([clean_df.drop(['sentiment'], axis=1), clean_df['sentiment'].apply(pd.Series)], axis=1)
 
 sentiment_score = spark.createDataFrame(reviews_df)
+
+#Add id column
+sentiment_score = sentiment_score.withColumn("id", row_number().over(Window.partitionBy(lit('')).orderBy(lit(''))))
 sentiment_score.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/sentiment_score")
 
