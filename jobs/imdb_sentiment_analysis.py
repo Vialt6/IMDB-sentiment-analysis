@@ -207,6 +207,20 @@ def make_image_negative_wc(b):
     plot_wordcloud(df=only_negative_pandas,title="Negative Wordcloud",column="negative").save(img,format='PNG')
     return 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
 
+@app.callback(dash.dependencies.Output('graph', 'figure'),
+              [dash.dependencies.Input(component_id='dropdown', component_property='value')]
+              )
+def n_grams_image(value):
+    if value == 'top_20_words':
+        fig = fig_top_20_words
+        return fig
+    if value == 'top_20_bigrams':
+        fig = fig_top_20_bigrams
+        return fig
+    if value == 'top_20_trigrams':
+        fig = fig_top_20_trigrams
+        return fig
+
 colors = {
     'background': '#111111',
     'text': '#7FDBFF'
@@ -251,9 +265,21 @@ app.layout=html.Div(style={'backgroundColor': colors['background']}, children = 
                 }
             ),
             dcc.Graph(id="sentiment", figure=fig),
-            dcc.Graph(id="words", figure=fig_top_20_words),
-            dcc.Graph(id="bigrams", figure=fig_top_20_bigrams),
-            dcc.Graph(id="trigrams", figure=fig_top_20_trigrams),
+            html.Div([
+               html.Label(['Chose a graph:']),
+               dcc.Dropdown(
+                   id = 'dropdown',
+                   options=[
+                        {'label': 'top 20 words', 'value':'top_20_words'},
+                        {'label': 'top 20 bigrams', 'value':'top_20_bigrams'},
+                        {'label': 'top 20 trigrams', 'value':'top_20_trigrams'},
+                   ],
+                    value='top_20_words',
+
+
+               ),
+                html.Div(dcc.Graph(id='graph'))
+            ],style={'width': '30%', 'display': 'inline-block','color': colors['text']}),
             html.Img(id="image_wc_positive"),
             html.Img(id="image_wc_negative"),
             dcc.Graph(id="word_count_positive", figure=fig_count_positive),
@@ -271,3 +297,8 @@ app.layout=html.Div(style={'backgroundColor': colors['background']}, children = 
 
 if __name__ == "__main__":
     app.run_server(debug=True)
+
+"""dcc.Graph(id="words", figure=fig_top_20_words),
+dcc.Graph(id="bigrams", figure=fig_top_20_bigrams),
+dcc.Graph(id="trigrams", figure=fig_top_20_trigrams)"""
+
