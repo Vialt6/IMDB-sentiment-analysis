@@ -61,7 +61,7 @@ def clean_text_up(text):
     text = remove_url(text)
     text = remove_stopwords_up(text)
     return text
-clean_text_udf = udf(lambda x : clean_text(x), StringType())
+clean_text_up_udf = udf(lambda x : clean_text_up(x), StringType())
 
 
 
@@ -69,3 +69,33 @@ def wordCount(wordListDF):
     return (wordListDF.groupBy('word').count())
 
 wordCountUDF = udf(lambda x : wordCount(x), IntegerType())
+
+
+def extract_rating(review):
+    # Search for a string "X/10" in the review, Where X is a number between 1 and 10
+    match = re.search(r'(\d+)/10', review)
+    if match:
+        # Estrai il numero X dalla stringa e converdilo in intero
+        rating = int(match.group(1))
+        if rating>=1 and rating<=10:
+            return rating
+    else:
+        return None
+
+
+# extract_rating_udf
+extract_rating_udf = udf(extract_rating)
+
+def extract_title(review):
+  # Cerca le parole chiave "recensione di" o "recensione del" seguite da un titolo tra virgolette
+  match = re.search(r'(watched) "(.+?)"', review)
+  if match:
+    # Estrai il titolo dalla stringa
+    title = match.group(2)
+    return title
+  else:
+    return None
+
+# Crea una funzione utente (udf) da questa funzione
+extract_title_udf = udf(extract_title)
+

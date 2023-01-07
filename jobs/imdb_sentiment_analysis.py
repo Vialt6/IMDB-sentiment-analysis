@@ -1,4 +1,6 @@
 from io import BytesIO
+import matplotlib
+matplotlib.use('Agg')
 from matplotlib import pyplot as plt
 from pyspark.sql.functions import StringType
 from pyspark.sql import SparkSession
@@ -69,6 +71,16 @@ top_20_pos_review = spark.read.parquet("../tmp/top_20_pos_review")
 #top 20 negative review
 top_20_neg_review = spark.read.parquet("../tmp/top_20_neg_review")
 
+#top 20 words in positive review
+top_20_words_positive = spark.read.parquet("../tmp/top_20_words_positive")
+
+#top 20 words in negative review
+top_20_words_negative = spark.read.parquet("../tmp/top_20_words_negative")
+
+
+
+
+
 
 
 
@@ -88,6 +100,10 @@ chars_countNegative_pd = num_of_charsN.toPandas()
 sentiment_score_pd = sentiment_score.toPandas()
 top_20_pos_review_pandas = top_20_pos_review.toPandas()
 top_20_neg_review_pandas = top_20_neg_review.toPandas()
+top_20_words_positive_pandas = top_20_words_positive.toPandas()
+top_20_words_negative_pandas = top_20_words_negative.toPandas()
+
+
 
 
 top_20_pos_review_pandas['id'] = top_20_pos_review_pandas['id'].astype(str)
@@ -198,7 +214,7 @@ fig_top_20_pos_review = px.bar(
     top_20_pos_review_pandas,
     x="pos",
     y="id",
-    title='Top 20 positive review in Text',
+    title='Top 20 positive reviews in Text',
     orientation='h',
     width=700, height=700,
     color='id'
@@ -209,11 +225,48 @@ fig_top_20_neg_review = px.bar(
     top_20_neg_review_pandas,
     x="neg",
     y="id",
-    title='Top 20 negative review in Text',
+    title='Top 20 negative reviews in Text',
     orientation='h',
     width=700, height=700,
     color='id'
 )
+
+#Barplot top 20 words in positive reviews
+fig_top_20_words_positive = px.bar(
+    top_20_words_positive_pandas,
+    x="count",
+    y="word",
+    title='Top 20 words in positive reviews',
+    orientation='h',
+    width=700, height=700,
+    color='word'
+)
+
+#Barplot top 20 words in negative reviews
+fig_top_20_words_negative = px.bar(
+    top_20_words_negative_pandas,
+    x="count",
+    y="word",
+    title='Top 20 words in negative',
+    orientation='h',
+    width=700, height=700,
+    color='word'
+)
+
+#Treemap of top 20 words in positive reviews
+figTree_top_20_words_positive = px.treemap(top_20_words_positive_pandas,
+                                           path=['word'],
+                                           values='count',
+                                           title='Top 20 words in positive reviews')
+
+
+#Treemap of top 20 words in negative reviews
+figTree_top_20_words_negative = px.treemap(top_20_words_negative_pandas,
+                                           path=['word'],
+                                           values='count',
+                                           title='Top 20 words in negative reviews')
+
+
 
 
 
@@ -289,6 +342,26 @@ def sentiment_score_fig(value):
 the_best_review = top_20_pos_review_pandas['review'].iloc[0]
 the_worst_review = top_20_neg_review_pandas['review'].iloc[0]
 
+
+
+@app.callback(Output('graph_top_20_words_review_pos_neg','figure'), [Input(component_id='dropdown_top_20_words_review_pos_neg',component_property='value')])
+def top_20_words_pos_neg_review_image(value):
+    if value == 'top_20_words_pos_review':
+        fig = fig_top_20_words_positive
+        return fig
+    if value == 'top_20_words_neg_review':
+        fig = fig_top_20_words_negative
+        return fig
+
+
+
+
+
+
+
+
+
+
 # the style arguments for the sidebar. We use position:fixed and a fixed width
 SIDEBAR_STYLE = {
     "position": "fixed",
@@ -330,7 +403,7 @@ sidebar = html.Div(
 
 home = html.Div(
         children=[
-            html.P(children="🎥🍿🎦", className="header-emoji", style={'textAlign':'center'}),
+            html.P(children="🎥🍿🎬📺", className="header-emoji", style={'textAlign':'center'}),
             html.H1(
                 children="IMDB sentiment analysis", className="header-title",
                 style={
@@ -384,7 +457,7 @@ home = html.Div(
 
 page1 = html.Div(
         children=[
-            html.P(children="🎥🍿🎦", className="header-emoji", style={'textAlign':'center'}),
+            html.P(children="🎥🍿🎬📺", className="header-emoji", style={'textAlign':'center'}),
             html.H1(
                 children="IMDB sentiment analysis", className="header-title",
                 style={
@@ -440,7 +513,31 @@ page1 = html.Div(
                     dbc.Col(dcc.Graph(id='graph_char_count',style={'display': 'flexible'}), width=3)
                 ], style={'display': 'flexible'}),
 
-            ], style={'width': '30%', 'display': 'flexible'})
+            ], style={'width': '30%', 'display': 'flexible'}),
+            html.Div(children=[
+                html.Div([
+                    html.Label(['Chose a graph:']),
+                    dcc.Dropdown(
+                        id='dropdown_top_20_words_review_pos_neg',
+                        options=[
+                            {'label': 'Top 20 words in positive reviews', 'value': 'top_20_words_pos_review'},
+                            {'label': 'Top 20 words in negative reviews', 'value': 'top_20_words_neg_review'},
+                        ],
+                        value='top_20_words_pos_review',
+                    ),
+                    dbc.Col(dcc.Graph(id='graph_top_20_words_review_pos_neg',style={'display': 'flexible'}), width=3)
+                ], style={'display': 'flexible'}),
+
+            ], style={'width': '30%', 'display': 'flexible'}),
+
+
+           html.Div([
+                    dcc.Graph(id="top_20_words_pos", figure= figTree_top_20_words_positive),
+                ], style={'display':'inline-block'}),
+
+           html.Div([
+                    dcc.Graph(id="top_20_words_neg", figure= figTree_top_20_words_negative),
+                ], style={'display':'inline-block'}),
 
             ],
 
@@ -448,7 +545,7 @@ page1 = html.Div(
 
 page2 = html.Div(
         children=[
-            html.P(children="🎥🍿🎦", className="header-emoji", style={'textAlign':'center'}),
+            html.P(children="🎥🍿🎬📺", className="header-emoji", style={'textAlign':'center'}),
             html.H1(
                 children="IMDB sentiment analysis", className="header-title",
                 style={
@@ -481,7 +578,7 @@ page2 = html.Div(
                     id='dropdown_top_20_review_pos_neg',
                     options=[
                         {'label': 'top 20 positive reviews', 'value': 'top_20_pos_review'},
-                        {'label': 'top 20 negavtive reviews', 'value': 'top_20_neg_review'},
+                        {'label': 'top 20 negative reviews', 'value': 'top_20_neg_review'},
                     ],
                     value='top_20_pos_review',
                 ),
@@ -506,6 +603,13 @@ page2 = html.Div(
                     html.Div(dcc.Graph(id='graph_sentiment_score'))
                 ], style={'display': 'inline-block'}),
             ], style={'width': '30%', 'display': 'inline-block'}),
+
+
+
+
+
+
+
             ],
 )
 
