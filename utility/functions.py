@@ -88,7 +88,21 @@ extract_rating_udf = udf(extract_rating)
 
 def extract_title(review):
   # Cerca le parole chiave "recensione di" o "recensione del" seguite da un titolo tra virgolette
-  match = re.search(r'(watched) "(.+?)"', review)
+  match = re.search(r'(watched|watch|see|saw|film|movie|about|view|viewing|watching|seeing) "(.+?)"', review)
+  if match:
+    # Estrai il titolo dalla stringa
+    title = match.group(2)
+    if len(title) >= 1 and len(title) <= 1000:
+        return title
+  else:
+    return None
+
+# Crea una funzione utente (udf) da questa funzione
+extract_title_udf = udf(extract_title)
+
+def extract_director(review):
+  # Cerca le parole chiave "recensione di" o "recensione del" seguite da un titolo tra virgolette
+  match = re.search(r'(directed by) ([A-Z][a-z]+(?: [A-Z][a-z]+)*)', review)
   if match:
     # Estrai il titolo dalla stringa
     title = match.group(2)
@@ -97,5 +111,4 @@ def extract_title(review):
     return None
 
 # Crea una funzione utente (udf) da questa funzione
-extract_title_udf = udf(extract_title)
-
+extract_director_udf = udf(extract_director)

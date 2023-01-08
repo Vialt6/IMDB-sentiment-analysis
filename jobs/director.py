@@ -1,7 +1,7 @@
 import pandas as pd
 from pyspark.sql import SparkSession
 from pyspark.sql.types import StructType, StructField, StringType
-from utility.functions import clean_text_up_udf, extract_title_udf
+from utility.functions import extract_director_udf
 from pyspark.sql.functions import col
 spark = SparkSession.builder \
       .master("local[2]") \
@@ -11,8 +11,9 @@ spark = SparkSession.builder \
 
 df = spark.read.parquet("../tmp/df_with_id")
 
-film_df = df.withColumn("title", extract_title_udf("review"))
-filtered_df = film_df.filter(col("title").isNotNull())
-#filtered_df = filtered_df.filter(filtered_df.title != 'Films')
+dir_df = df.withColumn("director", extract_director_udf("review"))
+filtered_df = dir_df.filter(col("director").isNotNull())
 filtered_df.show()
-filtered_df.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/film_df")
+pandasDF=filtered_df.toPandas()
+print(pandasDF.shape)
+filtered_df.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/director_df")

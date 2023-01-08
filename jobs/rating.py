@@ -19,4 +19,4 @@ rating_df = df.withColumn("rating", extract_rating_udf("review"))
 filtered_df = rating_df.filter(col("rating").isNotNull())
 filtered_df.show()
 
-filtered_df.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/rating_df")
+#filtered_df.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/rating_df")
