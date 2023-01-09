@@ -427,7 +427,7 @@ avg_pos_score = round(sentiment_score_pd["pos"].mean(),2)
 avg_neg_score = round(sentiment_score_pd["neg"].mean(),2)
 rating_df_pandas['rating'] = rating_df_pandas['rating'].astype(int)
 avg_rating = round(rating_df_pandas["rating"].mean(), 2)
-print(avg_rating)
+
 
 # the style arguments for the sidebar. We use position:fixed and a fixed width
 SIDEBAR_STYLE = {
