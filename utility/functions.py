@@ -3,6 +3,8 @@ from nltk.corpus import stopwords
 from pyspark.sql.functions import udf
 from pyspark.sql.types import StructType, StructField, StringType, IntegerType
 import re
+from nltk.tokenize import word_tokenize
+from nltk.probability import FreqDist
 def html_parser(text):
     soup = BeautifulSoup(text, "html.parser")
     return soup.get_text()
@@ -112,3 +114,16 @@ def extract_director(review):
 
 # Crea una funzione utente (udf) da questa funzione
 extract_director_udf = udf(extract_director)
+
+
+def extract_keywords(cluster_text):
+    stop_words = set(stopwords.words('english'))
+    words = word_tokenize(cluster_text)
+    fdist = FreqDist(words)
+    keywords = []
+    for word, freq in fdist.most_common(5):
+        if word not in stop_words:
+            keywords.append(word)
+    return keywords
+
+extract_keywords_udf = udf(extract_keywords)
