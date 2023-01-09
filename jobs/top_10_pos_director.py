@@ -13,11 +13,11 @@ sentiment_df = spark.read.parquet("../tmp/sentiment_score")
 director_sentiment_df = director_df.join(sentiment_df, on="id")
 director_sentiment_df = director_sentiment_df.select("director","pos","neg","id")
 director_sentiment_df.show()
-director_sentiment_df.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/director_sentiment_df")
+#director_sentiment_df.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/director_sentiment_df")
 
 
 top_10_pos_director = director_sentiment_df.orderBy("pos", ascending=0).limit(10)
 top_10_pos_director = top_10_pos_director.select("director","pos")
 top_10_pos_director.show(truncate=False)
 
-top_10_pos_director.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/top_10_pos_director")
+#top_10_pos_director.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/top_10_pos_director")

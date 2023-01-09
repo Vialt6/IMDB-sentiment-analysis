@@ -77,9 +77,12 @@ top_20_words_positive = spark.read.parquet("../tmp/top_20_words_positive")
 #top 20 words in negative review
 top_20_words_negative = spark.read.parquet("../tmp/top_20_words_negative")
 
+#Df Director
+director_df = spark.read.parquet("../tmp/director_df")
 
-
-
+#top 10 film based on positive and negative score
+top_10_pos_film = spark.read.parquet("../tmp/top_10_pos_film")
+top_10_neg_film = spark.read.parquet("../tmp/top_10_neg_film")
 
 
 
@@ -102,6 +105,9 @@ top_20_pos_review_pandas = top_20_pos_review.toPandas()
 top_20_neg_review_pandas = top_20_neg_review.toPandas()
 top_20_words_positive_pandas = top_20_words_positive.toPandas()
 top_20_words_negative_pandas = top_20_words_negative.toPandas()
+director_df_pandas = director_df.toPandas()
+top_10_pos_film_pandas = top_10_pos_film.toPandas()
+top_10_neg_film_pandas = top_10_neg_film.toPandas()
 
 
 
@@ -195,7 +201,7 @@ fig_chararcter_negative = px.histogram(
 
 
 fig_sentiment_score_pos = px.histogram(
-    sentiment_score_pd,
+    sentiment_score_pd[sentiment_score_pd['pos']>0],
     title='Distribution of positive score',
     x='pos',
     width=700, height=700
@@ -203,7 +209,7 @@ fig_sentiment_score_pos = px.histogram(
 
 
 fig_sentiment_score_neg = px.histogram(
-    sentiment_score_pd,
+    sentiment_score_pd[sentiment_score_pd['neg']>0],
     title='Distribution of negative score',
     x='neg',
     width=700, height=700
@@ -266,7 +272,27 @@ figTree_top_20_words_negative = px.treemap(top_20_words_negative_pandas,
                                            values='count',
                                            title='Top 20 words in negative reviews')
 
+#Barplot top 10 film based on positive score
+fig_top_10_pos_film = px.bar(
+    top_10_pos_film_pandas,
+    x="pos",
+    y="title",
+    title='Top 10 film based on positive score',
+    orientation='h',
+    width=700, height=700,
+    color='title'
+)
 
+#Barplot top 10  film based on negative score
+fig_top_10_neg_film = px.bar(
+    top_10_neg_film_pandas,
+    x="neg",
+    y="title",
+    title='Top 10 film based on negative score',
+    orientation='h',
+    width=700, height=700,
+    color='title'
+)
 
 
 
@@ -274,6 +300,12 @@ figTree_top_20_words_negative = px.treemap(top_20_words_negative_pandas,
 def plot_wordcloud(df,title,column):
     plt.figure(figsize = (20,20))
     wc = WordCloud(max_words = 500 , width = 800 , height = 300).generate(" ".join(df.review))
+    plt.title(title, fontsize=13)
+    return wc.to_image()
+
+def plot_wordcloud_director(df,title,column):
+    plt.figure(figsize = (20,20))
+    wc = WordCloud(max_words = 100 , width = 800 , height = 300).generate(" ".join(df.director))
     plt.title(title, fontsize=13)
     return wc.to_image()
 
@@ -289,6 +321,13 @@ def make_image_negative_wc(b):
     img=BytesIO()
     plot_wordcloud(df=only_negative_pandas,title="Negative Wordcloud",column="negative").save(img,format='PNG')
     return 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
+
+@app.callback(dash.dependencies.Output('image_wc_director', 'src'), [dash.dependencies.Input('image_wc_director','id')])
+def make_image_director_wc(b):
+    img=BytesIO()
+    plot_wordcloud_director(df=director_df_pandas,title="Director Wordcloud",column="director").save(img,format='PNG')
+    return 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
+
 
 @app.callback(dash.dependencies.Output('graph_ngrams', 'figure'),
               [dash.dependencies.Input(component_id='dropdown_ngrams', component_property='value')]
@@ -353,12 +392,24 @@ def top_20_words_pos_neg_review_image(value):
         fig = fig_top_20_words_negative
         return fig
 
+#graph for top 10 film based on negative and positive score
+@app.callback(Output('graph_top_10_film_pos_neg_score','figure'), [Input(component_id='dropdown_top_10_film_pos_neg_score',component_property='value')])
+def top_10_film_pos_neg_score_image(value):
+    if value == 'top_10_pos_film':
+        fig = fig_top_10_pos_film
+        return fig
+    if value == 'top_10_neg_film':
+        fig = fig_top_10_neg_film
+        return fig
 
 
 
-
-
-
+avg_pos_word = round(word_countPositive_pd["wordCount"].mean(),2)
+avg_neg_word = round(word_countNegative_pd["wordCount"].mean(),2)
+avg_num_char_pos = round(chars_countPositive_pd["number_of_character"].mean(),2)
+avg_num_char_neg = round(chars_countNegative_pd["number_of_character"].mean(),2)
+avg_pos_score = round(sentiment_score_pd["pos"].mean(),2)
+avg_neg_score = round(sentiment_score_pd["neg"].mean(),2)
 
 
 
@@ -393,6 +444,7 @@ sidebar = html.Div(
                 dbc.NavLink("Home", href="/", active="exact"),
                 dbc.NavLink("Page 1", href="/page-1", active="exact"),
                 dbc.NavLink("Page 2", href="/page-2", active="exact"),
+                dbc.NavLink("Page 3", href="/page-3", active="exact"),
             ],
             vertical=True,
             pills=True,
@@ -448,6 +500,7 @@ home = html.Div(
                 ],style={'display':'inline-block'}),
                 html.P("This is the word cloud for positive reviews"),
                 html.Img(id="image_wc_positive"),
+                html.Div(),
                 html.P("This is the word cloud for negative reviews"),
                 html.Img(id="image_wc_negative"),
 
@@ -495,6 +548,10 @@ page1 = html.Div(
                     value='wc_pos',
                 ),
                 dbc.Col(dcc.Graph(id='graph_word_count',style={'display': 'flexible'}), width=3),
+                html.P('average positive word length:'),
+                html.P(avg_pos_word),
+                html.P('average negative word length:'),
+                html.P(avg_neg_word),
 
                 ],style={'display':'flexible'}),
 
@@ -510,7 +567,11 @@ page1 = html.Div(
                         ],
                         value='char_count_pos',
                     ),
-                    dbc.Col(dcc.Graph(id='graph_char_count',style={'display': 'flexible'}), width=3)
+                    dbc.Col(dcc.Graph(id='graph_char_count',style={'display': 'flexible'}), width=3),
+                    html.P('average number of characters in positive reviews:'),
+                    html.P(avg_num_char_pos),
+                    html.P('average number of characters in negative reviews:'),
+                    html.P(avg_num_char_neg),
                 ], style={'display': 'flexible'}),
 
             ], style={'width': '30%', 'display': 'flexible'}),
@@ -600,7 +661,11 @@ page2 = html.Div(
                         ],
                         value='sentiment_pos',
                     ),
-                    html.Div(dcc.Graph(id='graph_sentiment_score'))
+                    html.Div(dcc.Graph(id='graph_sentiment_score')),
+                    html.P("This is the average positivity score: "),
+                    html.P(avg_pos_score),
+                    html.P("This is the average negativity score: "),
+                    html.P(avg_neg_score)
                 ], style={'display': 'inline-block'}),
             ], style={'width': '30%', 'display': 'inline-block'}),
 
@@ -613,6 +678,59 @@ page2 = html.Div(
             ],
 )
 
+page3 = html.Div(
+        children=[
+            html.P(children="🎥🍿🎬📺", className="header-emoji", style={'textAlign':'center'}),
+            html.H1(
+                children="IMDB sentiment analysis", className="header-title",
+                style={
+                    'textAlign': 'center'
+
+                }
+            ),
+            html.P(
+                children="This is a dashboard for the Big Data Project using Pyspark and Dash."
+                "The project involves analyzing reviews from the IMDB website and classifying them as either",
+                className="header-description",
+                style={
+                    'textAlign': 'center'
+
+                }
+            ),
+            html.P(
+                children="positive or negative based on the sentiment column in the dataset. The dataset consists of "
+                "two columns: \"review\" and \"sentiment\", where the review column contains the text of the "
+                "review and the sentiment column indicates whether the review is positive or negative.",
+                className="header-description",
+                style={
+                    'textAlign': 'center'
+                }
+            ),
+            html.Div(
+            children=[
+            html.Div(children=[
+                html.Div([
+                html.Label(['Chose a graph:']),
+                dcc.Dropdown(
+                    id='dropdown_top_10_film_pos_neg_score',
+                    options=[
+                        {'label': 'Top 10 films based on positive score', 'value': 'top_10_pos_film'},
+                        {'label': 'Top 10 films based on negative score', 'value': 'top_10_neg_film'},
+                    ],
+                    value='top_10_pos_film',
+                ),
+                dbc.Col(dcc.Graph(id='graph_top_10_film_pos_neg_score', style={'display': 'flexible'}), width=3),
+                html.Div(),
+                html.P("This is the word cloud for directors of films"),
+                html.Img(id="image_wc_director"),
+            ], style={'display': 'flexible'}),
+
+        ], style={'width': '30%', 'display': 'flexible'}),
+
+    ],
+)
+        ],
+)
 
 
 
@@ -635,6 +753,8 @@ def render_page_content(pathname):
         return page1
     elif pathname == "/page-2":
         return page2
+    elif pathname == "/page-3":
+        return page3
     # If the user tries to reach a different page, return a 404 message
     return html.Div(
         [
