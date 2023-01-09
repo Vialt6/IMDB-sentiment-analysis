@@ -15,6 +15,7 @@ import dash_bootstrap_components as dbc
 #from dash_bootstrap_components import BOOTSTRAP
 
 
+
 spark = SparkSession.builder \
       .master("local[2]") \
       .appName("SparkByExamples.com") \
@@ -87,6 +88,8 @@ top_10_neg_film = spark.read.parquet("../tmp/top_10_neg_film")
 #Rating df
 rating_df = spark.read.parquet("../tmp/rating_df")
 
+#model Result df
+result_df = spark.read.parquet("../tmp/result_model_df")
 
 #Convert the "spark df" to a pandas df
 pdf1 = df.toPandas()
@@ -109,7 +112,7 @@ director_df_pandas = director_df.toPandas()
 top_10_pos_film_pandas = top_10_pos_film.toPandas()
 top_10_neg_film_pandas = top_10_neg_film.toPandas()
 rating_df_pandas = rating_df.toPandas()
-
+result_df_pandas = result_df.toPandas()
 
 
 top_20_pos_review_pandas['id'] = top_20_pos_review_pandas['id'].astype(str)
@@ -302,7 +305,45 @@ rating_distribution = px.histogram(
     width=700, height=700
 ).update_xaxes(categoryorder='total ascending')
 
+#Barplot Accuracy
+fig_accuracy = px.bar(
+    result_df_pandas,
+    x="classifier",
+    y="accuracy",
+    title='Accuracy score',
+    width=700, height=700,
+    color='classifier'
+)
 
+#Barplot F1
+fig_f1 = px.bar(
+    result_df_pandas,
+    x="classifier",
+    y="f1",
+    title='F1 score',
+    width=700, height=700,
+    color='classifier'
+)
+
+#Barplot precision
+fig_precision = px.bar(
+    result_df_pandas,
+    x="classifier",
+    y="precision",
+    title='Precision score',
+    width=700, height=700,
+    color='classifier'
+)
+
+#Barplot recall
+fig_recall = px.bar(
+    result_df_pandas,
+    x="classifier",
+    y="recall",
+    title='Recall score',
+    width=700, height=700,
+    color='classifier'
+)
 
 #Making wordcloud for positive and negative
 def plot_wordcloud(df,title,column):
@@ -461,6 +502,7 @@ sidebar = html.Div(
                 dbc.NavLink("Page 1", href="/page-1", active="exact"),
                 dbc.NavLink("Page 2", href="/page-2", active="exact"),
                 dbc.NavLink("Page 3", href="/page-3", active="exact"),
+                dbc.NavLink("prediction results", href="/prediction", active="exact"),
             ],
             vertical=True,
             pills=True,
@@ -752,6 +794,42 @@ page3 = html.Div(
         ],
 )
 
+prediction = html.Div(
+        children=[
+            html.P(children="🎥🍿🎬📺", className="header-emoji", style={'textAlign':'center'}),
+            html.H1(
+                children="IMDB sentiment analysis", className="header-title",
+                style={
+                    'textAlign': 'center'
+
+                }
+            ),
+            html.P(
+                children="This is a dashboard for the Big Data Project using Pyspark and Dash."
+                "The project involves analyzing reviews from the IMDB website and classifying them as either",
+                className="header-description",
+                style={
+                    'textAlign': 'center'
+
+                }
+            ),
+            html.P(
+                children="positive or negative based on the sentiment column in the dataset. The dataset consists of "
+                "two columns: \"review\" and \"sentiment\", where the review column contains the text of the "
+                "review and the sentiment column indicates whether the review is positive or negative.",
+                className="header-description",
+                style={
+                    'textAlign': 'center'
+                }
+            ),
+            html.Div([
+                html.Div(dcc.Graph(id='accuracy_score', figure=fig_accuracy)),
+                html.Div(dcc.Graph(id='accuracy_score', figure=fig_f1)),
+                html.Div(dcc.Graph(id='accuracy_score', figure=fig_precision)),
+                html.Div(dcc.Graph(id='accuracy_score', figure=fig_recall)),
+            ], style={'display': 'inline-block'}),
+            ]
+)
 
 
 
@@ -775,6 +853,8 @@ def render_page_content(pathname):
         return page2
     elif pathname == "/page-3":
         return page3
+    elif pathname == "/prediction":
+        return prediction
     # If the user tries to reach a different page, return a 404 message
     return html.Div(
         [
