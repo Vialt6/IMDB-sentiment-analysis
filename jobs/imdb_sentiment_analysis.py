@@ -84,8 +84,8 @@ director_df = spark.read.parquet("../tmp/director_df")
 top_10_pos_film = spark.read.parquet("../tmp/top_10_pos_film")
 top_10_neg_film = spark.read.parquet("../tmp/top_10_neg_film")
 
-
-
+#Rating df
+rating_df = spark.read.parquet("../tmp/rating_df")
 
 
 #Convert the "spark df" to a pandas df
@@ -108,7 +108,7 @@ top_20_words_negative_pandas = top_20_words_negative.toPandas()
 director_df_pandas = director_df.toPandas()
 top_10_pos_film_pandas = top_10_pos_film.toPandas()
 top_10_neg_film_pandas = top_10_neg_film.toPandas()
-
+rating_df_pandas = rating_df.toPandas()
 
 
 
@@ -166,7 +166,7 @@ fig_top_20_trigrams = px.bar(
     color='trigram'
 )
 
-
+#Hist positive reviews
 fig_count_positive = px.histogram(
     word_countPositive_pd,
     title='Number of words in positive reviews',
@@ -175,7 +175,7 @@ fig_count_positive = px.histogram(
 )
 
 
-
+#Hist negative reviews
 fig_count_negative = px.histogram(
     word_countNegative_pd,
     title='Number of words in negative reviews',
@@ -183,7 +183,7 @@ fig_count_negative = px.histogram(
     width=700, height=700
 )
 
-
+#Hist positive char
 fig_chararcter_positive = px.histogram(
     chars_countPositive_pd,
     title='Number of characters in positive reviews',
@@ -191,7 +191,7 @@ fig_chararcter_positive = px.histogram(
     width=700, height=700
 )
 
-
+#Hist negative char
 fig_chararcter_negative = px.histogram(
     chars_countNegative_pd,
     title='Number of characters in negative reviews',
@@ -199,7 +199,7 @@ fig_chararcter_negative = px.histogram(
     width=700, height=700
 )
 
-
+#Hist positive score
 fig_sentiment_score_pos = px.histogram(
     sentiment_score_pd[sentiment_score_pd['pos']>0],
     title='Distribution of positive score',
@@ -207,7 +207,7 @@ fig_sentiment_score_pos = px.histogram(
     width=700, height=700
 )
 
-
+#Hist negative score
 fig_sentiment_score_neg = px.histogram(
     sentiment_score_pd[sentiment_score_pd['neg']>0],
     title='Distribution of negative score',
@@ -294,6 +294,14 @@ fig_top_10_neg_film = px.bar(
     color='title'
 )
 
+#Hist rating df
+rating_distribution = px.histogram(
+    rating_df_pandas,
+    title='Distribution of rating in the reviews',
+    x="rating",
+    width=700, height=700
+).update_xaxes(categoryorder='total ascending')
+
 
 
 #Making wordcloud for positive and negative
@@ -303,6 +311,7 @@ def plot_wordcloud(df,title,column):
     plt.title(title, fontsize=13)
     return wc.to_image()
 
+#Making wordcloud for directors
 def plot_wordcloud_director(df,title,column):
     plt.figure(figsize = (20,20))
     wc = WordCloud(max_words = 100 , width = 800 , height = 300).generate(" ".join(df.director))
@@ -328,7 +337,7 @@ def make_image_director_wc(b):
     plot_wordcloud_director(df=director_df_pandas,title="Director Wordcloud",column="director").save(img,format='PNG')
     return 'data:image/png;base64,{}'.format(base64.b64encode(img.getvalue()).decode())
 
-
+#Top 20 words/bigrams/trigrams
 @app.callback(dash.dependencies.Output('graph_ngrams', 'figure'),
               [dash.dependencies.Input(component_id='dropdown_ngrams', component_property='value')]
               )
@@ -343,6 +352,7 @@ def n_grams_image(value):
         fig = fig_top_20_trigrams
         return fig
 
+#Word count pos/neg
 @app.callback(Output('graph_word_count','figure'), [Input(component_id='dropdown_wc',component_property='value')])
 def word_count_image(value):
     if value == 'wc_pos':
@@ -352,6 +362,7 @@ def word_count_image(value):
         fig = fig_count_negative
         return fig
 
+#Char count pos/neg
 @app.callback(Output('graph_char_count','figure'), [Input(component_id='dropdown_char_count',component_property='value')])
 def word_count_image(value):
     if value == 'char_count_pos':
@@ -361,6 +372,7 @@ def word_count_image(value):
         fig = fig_chararcter_negative
         return fig
 
+#Top 20 pos/neg reviews
 @app.callback(Output('graph_top_20_review_pos_neg','figure'), [Input(component_id='dropdown_top_20_review_pos_neg',component_property='value')])
 def top_20_pos_neg_review_image(value):
     if value == 'top_20_pos_review':
@@ -369,6 +381,8 @@ def top_20_pos_neg_review_image(value):
     if value == 'top_20_neg_review':
         fig = fig_top_20_neg_review
         return fig
+
+#Sentiment score pos/neg
 @app.callback(Output('graph_sentiment_score','figure'), [Input(component_id='dropdown_sentiment_score',component_property='value')])
 def sentiment_score_fig(value):
     if value == 'sentiment_pos':
@@ -378,11 +392,12 @@ def sentiment_score_fig(value):
         fig = fig_sentiment_score_neg
         return fig
 
+#Taking besst and worst review
 the_best_review = top_20_pos_review_pandas['review'].iloc[0]
 the_worst_review = top_20_neg_review_pandas['review'].iloc[0]
 
 
-
+#top 20 words based on score
 @app.callback(Output('graph_top_20_words_review_pos_neg','figure'), [Input(component_id='dropdown_top_20_words_review_pos_neg',component_property='value')])
 def top_20_words_pos_neg_review_image(value):
     if value == 'top_20_words_pos_review':
@@ -410,8 +425,9 @@ avg_num_char_pos = round(chars_countPositive_pd["number_of_character"].mean(),2)
 avg_num_char_neg = round(chars_countNegative_pd["number_of_character"].mean(),2)
 avg_pos_score = round(sentiment_score_pd["pos"].mean(),2)
 avg_neg_score = round(sentiment_score_pd["neg"].mean(),2)
-
-
+rating_df_pandas['rating'] = rating_df_pandas['rating'].astype(int)
+avg_rating = round(rating_df_pandas["rating"].mean(), 2)
+print(avg_rating)
 
 # the style arguments for the sidebar. We use position:fixed and a fixed width
 SIDEBAR_STYLE = {
@@ -723,6 +739,10 @@ page3 = html.Div(
                 html.Div(),
                 html.P("This is the word cloud for directors of films"),
                 html.Img(id="image_wc_director"),
+                html.Div(),
+                dbc.Col(dcc.Graph(id='rating_distribution', figure=rating_distribution)),
+                html.P("This is the average rating extracted from the reviews"),
+                html.P(avg_rating)
             ], style={'display': 'flexible'}),
 
         ], style={'width': '30%', 'display': 'flexible'}),
@@ -773,17 +793,4 @@ def render_page_content(pathname):
 
 if __name__ == "__main__":
     app.run_server(debug=True,dev_tools_ui=False)
-
-
-
-"""html.Img(id="image_wc_positive"),
-html.Img(id="image_wc_negative"),
-dcc.Graph(id="word_count_positive", figure=fig_count_positive),
-dcc.Graph(id="word_count_negative", figure=fig_count_negative),
-dcc.Graph(id="charsCountPositive", figure=fig_chararcter_positive),
-dcc.Graph(id="charsCountNegative", figure=fig_chararcter_negative),
-dcc.Graph(id="positive_score", figure=fig_sentiment_score_pos),
-dcc.Graph(id="negative_score", figure=fig_sentiment_score_neg),
-dcc.Graph(id="top_20_positive_review", figure=fig_top_20_pos_review),
-dcc.Graph(id="top_20_negative_review", figure=fig_top_20_neg_review)"""
 
