@@ -12,7 +12,7 @@ sentiment_df = spark.read.parquet("../tmp/sentiment_score")
 film_sentiment_df = film_df.join(sentiment_df, on="id")
 film_sentiment_df = film_sentiment_df.select("title","pos","neg","compound","id")
 film_sentiment_df.show()
-film_sentiment_df.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/film_sentiment_df")
+#film_sentiment_df.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/film_sentiment_df")
 
 
 #select the top 10 film based on positivity score

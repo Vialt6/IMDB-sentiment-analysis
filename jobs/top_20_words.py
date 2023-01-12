@@ -15,17 +15,19 @@ clean_df = spark.read.parquet("../tmp/clean_df")
 #def top_20_words_df():
 shakeWordsSplitDF = (clean_df
                         .select(split(clean_df.review, '\s+').alias('split')))
+shakeWordsSplitDF.show()
 shakeWordsSingleDF = (shakeWordsSplitDF
-                        .select(explode(shakeWordsSplitDF.split).alias('word')))
+                        .select(explode(shakeWordsSplitDF.split).alias('word'))).cache()
+shakeWordsSingleDF.show()
 shakeWordsDF = shakeWordsSingleDF.where(shakeWordsSingleDF.word != '')
 #shakeWordsDF.persist()
 #shakeWordsDF.show()
 
 shakeWordsDFCount = shakeWordsDF.count()
 WordsAndCountsDF = wordCount(shakeWordsDF)
-WordsAndCountsDF
 
 top_20_words = WordsAndCountsDF.orderBy("count", ascending=0).limit(20).cache()
+top_20_words.show()
 #top_20_words.cache()
 
 #top_20_words.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/top_20_words")

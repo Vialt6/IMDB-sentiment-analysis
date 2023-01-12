@@ -18,7 +18,7 @@ clean_df = spark.read.parquet("../tmp/clean_df")
 #                                            [d, e, f...]
 tokenizer = Tokenizer(inputCol="review", outputCol="word")
 vector_df = tokenizer.transform(clean_df).select("word")
-#vector_df.show()
+vector_df.show()
 
 ngram = NGram(n=2, inputCol="word", outputCol="bigrams")
 #Df with 2 columns "Vector" and "word"
@@ -26,4 +26,6 @@ bigramDataFrame = ngram.transform(vector_df)
 bigrams_df=bigramDataFrame.select(explode("bigrams").alias("bigram")).groupBy("bigram").count()
 top_20_bigrams = bigrams_df.orderBy("count", ascending=0).limit(20).cache()
 
-top_20_bigrams.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/top_20_bigrams")
+top_20_bigrams.show()
+
+#top_20_bigrams.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/top_20_bigrams")

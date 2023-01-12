@@ -364,6 +364,7 @@ fig_recall = px.bar(
     color='classifier'
 )
 
+
 #Making wordcloud for positive and negative
 def plot_wordcloud(df,title,column):
     plt.figure(figsize = (20,20))
@@ -838,7 +839,7 @@ page4 = html.Div(
                 html.P("Average rating extracted from the reviews",
                        style={'color': 'black'}),
                 html.P(avg_rating,
-                       style={'color': 'black'})
+                       style={'color': 'black'}),
             ], style={'display': 'flexible'}),
 
         ], style={'width': '30%', 'display': 'flexible'}),
