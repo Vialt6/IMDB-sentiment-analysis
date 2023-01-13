@@ -91,8 +91,14 @@ top_10_neg_film = spark.read.parquet("../tmp/top_10_neg_film")
 #Rating df
 rating_df = spark.read.parquet("../tmp/rating_df")
 
+#compound rating
+compound_rating = spark.read.parquet("../tmp/compound_rating_df")
+
 #model Result df
 result_df = spark.read.parquet("../tmp/result_model_df")
+
+
+
 
 #Convert the "spark df" to a pandas df
 pdf1 = df.toPandas()
@@ -116,6 +122,7 @@ top_10_pos_film_pandas = top_10_pos_film.toPandas()
 top_10_neg_film_pandas = top_10_neg_film.toPandas()
 rating_df_pandas = rating_df.toPandas()
 result_df_pandas = result_df.toPandas()
+compound_rating_pandas = compound_rating.toPandas()
 
 
 top_20_pos_review_pandas['id'] = top_20_pos_review_pandas['id'].astype(str)
@@ -324,6 +331,18 @@ rating_distribution = px.histogram(
     width=700, height=700
 ).update_xaxes(categoryorder='total ascending')
 
+#Hist negative score
+fig_compound_dist = px.histogram(
+    sentiment_score_pd['compound'],
+    title='Distribution of compound score',
+    x='compound',
+    width=700, height=700,
+    color_discrete_sequence= ['mediumorchid']
+)
+
+
+
+
 #Barplot Accuracy
 fig_accuracy = px.bar(
     result_df_pandas,
@@ -363,6 +382,8 @@ fig_recall = px.bar(
     width=700, height=700,
     color='classifier'
 )
+
+
 
 
 #Making wordcloud for positive and negative
@@ -840,6 +861,9 @@ page4 = html.Div(
                        style={'color': 'black'}),
                 html.P(avg_rating,
                        style={'color': 'black'}),
+
+                html.Div(),
+                dbc.Col(dcc.Graph(id='compound_distribution', figure=fig_compound_dist))
             ], style={'display': 'flexible'}),
 
         ], style={'width': '30%', 'display': 'flexible'}),
