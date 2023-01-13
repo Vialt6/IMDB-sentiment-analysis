@@ -26,7 +26,7 @@ tokenizedTrain = tokenizer.transform(clean_df)
 cv = CountVectorizer(inputCol="tokenized_review", outputCol="features")
 model = cv.fit(tokenizedTrain)
 result = model.transform(tokenizedTrain)
-#result.show(truncate=False)
+result.show(truncate=False)
 
 split_data = result.randomSplit([0.7,0.3])
 train_set = split_data[0]

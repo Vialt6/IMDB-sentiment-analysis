@@ -11,7 +11,7 @@ clean_df = spark.read.parquet("../tmp/clean_df")
 
 only_positive_df = clean_df.filter(clean_df.sentiment == "positive")
 
-#number of words and characters in positive reviews
+#number of words in positive reviews
 num_of_wordP = (only_positive_df.withColumn('wordCount', size(split(col("review"),' '))))
 
 #num_of_wordP.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/num_words_positive")

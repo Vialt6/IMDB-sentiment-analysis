@@ -23,5 +23,6 @@ sentiment_score = spark.createDataFrame(reviews_df)
 
 #Add id column
 sentiment_score = sentiment_score.withColumn("id", row_number().over(Window.partitionBy(lit('')).orderBy(lit(''))))
-sentiment_score.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/sentiment_score")
+sentiment_score.show()
+#sentiment_score.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/sentiment_score")
 

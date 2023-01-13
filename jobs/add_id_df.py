@@ -21,4 +21,4 @@ df.createTempView("MovieReviews")
 #Adding Id column to initial df
 df_id = df.withColumn("id", row_number().over(Window.partitionBy(lit('')).orderBy(lit(''))))
 
-df_id.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/df_with_id")
+df_id.write.mode("overwrite").csv("D:/progetti/progetto/file/df_with_id")

@@ -10,9 +10,9 @@ spark = SparkSession.builder \
 
 
 df = spark.read.parquet("../tmp/df_with_id")
-
+df.show()
 film_df = df.withColumn("title", extract_title_udf("review"))
 filtered_df = film_df.filter(col("title").isNotNull())
 #filtered_df = filtered_df.filter(filtered_df.title != 'Films')
 filtered_df.show()
-filtered_df.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/film_df")
+#filtered_df.write.mode("overwrite").parquet("D:/progetti/progetto/tmp/film_df")
